@@ -33,7 +33,8 @@ MINIO_UPLOADS_FOLDER_NAME=uploads
 ## Then you can use the Minio middleware in your Express application:
 Four operations are provided:
 * post
-* get
+* get (deprecated)
+* getStream
 * delete
 * list
 
@@ -49,6 +50,7 @@ You can find below an example.
 const expressMinio = require('express-middleware-minio')
 const minioMiddleware = expressMinio.middleware();
 
+// Upload a file
 app.post('/api/files', minioMiddleware({op: expressMinio.Ops.post}), (req, res) => {
   if (req.minio.error) {
     res.status(400).json({ error: req.minio.error })
@@ -57,6 +59,7 @@ app.post('/api/files', minioMiddleware({op: expressMinio.Ops.post}), (req, res) 
   }
 })
 
+// List all files
 app.get('/api/files',
   minioMiddleware({op: expressMinio.Ops.list}),
   (req, res) => {
@@ -68,22 +71,22 @@ app.get('/api/files',
   }
 )
 
-app.get('/api/files/:filename',
-  minioMiddleware({op: expressMinio.Ops.get}),
+// Download a file
+app.get(
+  `/api/files/:filename`,
+  minioMiddleware({ op: expressMinio.Ops.getStream }),
   (req, res) => {
     if (req.minio.error) {
       res.status(400).json({ error: req.minio.error })
       return
     }
-    res.download(req.minio.get.path, req.minio.get.originalName, err => {
-      if (err) {
-        console.warn('Download failed: ', err)
-      }
-      expressMinio.utils.removeFile(req.minio.get.path)
-    })
-  }
+
+    res.attachment(req.minio.get.originalName)
+    req.minio.get.stream.pipe(res);
+  },
 )
 
+// Delete a file
 app.delete('/api/files/:filename',
   minioMiddleware({op: expressMinio.Ops.delete}),
   (req, res) => {
@@ -97,7 +100,7 @@ app.delete('/api/files/:filename',
 ```
 
 ## Configuration
-### logger
+### logger (optional)
 By default, console is used for logging. You can override the logger with Node-config.
 
 Here is an example config/default.js:
@@ -119,9 +122,10 @@ module.exports = {
 }
 
 ```
-### Temporary directory
 
-Currently when retrieving a file from Minio, we download and save it in the local filesystem, and then return it to the client.
+### Temporary directory (optional and deprecated)
+
+Currently when retrieving a file from Minio via operation get (see above), we download and save it in the local filesystem, and then return it to the client.
 
 This is the directory used to hold the file in the local filesystem. Be default, it is /tmp. You can change it to a different directory if necessary.
 
@@ -132,3 +136,5 @@ module.exports = {
   minioTmpDir: '/tmp'
 }
 ```
+
+**Note**: the recommended way is to use operation getStream, which would pipe the stream of the requested file to the client. If you use getStream way, you don't need to set up the temporary directory.
