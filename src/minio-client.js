@@ -3,7 +3,7 @@ const config = require('config')
 
 const logger = (config && config.logger) || console
 const { MINIO_UPLOADS_FOLDER_NAME, MINIO_BUCKET } = process.env
-console.log('bucket:: ', MINIO_BUCKET)
+logger.log('bucket:: ', MINIO_BUCKET)
 let minioClient
 
 const initBucket = async minioClient => {
@@ -26,7 +26,7 @@ const initBucket = async minioClient => {
         MINIO_BUCKET,
         process.env.MINIO_REGION || 'eu-west-2'
       )
-      console.log('Bucket creatd')
+      logger.log('Bucket creatd')
     } catch (err) {
       const errMsg = `initBucket - makeBucket: ${err}`
       logger.error(errMsg)
@@ -57,7 +57,7 @@ const getInstance = async () => {
 
 module.exports = {
   getInstance,
-  async uploadFile (filename, oriFilename, fileType, tempFilePath, callback) {
+  async uploadFile(filename, oriFilename, fileType, tempFilePath, callback) {
     const uploads = MINIO_UPLOADS_FOLDER_NAME
     const filePath = `${uploads}/${filename}`
     const encodedOriFileName = Buffer.from(oriFilename).toString('base64')
@@ -77,7 +77,7 @@ module.exports = {
     )
   },
 
-  async uploadFileSteam (filename, oriFilename, fileType, fileStream) {
+  async uploadFileSteam(filename, oriFilename, fileType, fileStream) {
     const uploads = MINIO_UPLOADS_FOLDER_NAME
     const filePath = `${uploads}/${filename}`
     const encodedOriFileName = Buffer.from(oriFilename).toString('base64')
@@ -91,7 +91,7 @@ module.exports = {
     return minioClient.putObject(MINIO_BUCKET, filePath, fileStream, metaData)
   },
 
-  async listFiles (callback) {
+  async listFiles(callback) {
     const uploads = MINIO_UPLOADS_FOLDER_NAME
     const prefix = `${uploads}`
 
@@ -109,21 +109,21 @@ module.exports = {
     })
   },
 
-  async getFile (fileName, tmpFile, callback) {
+  async getFile(fileName, tmpFile, callback) {
     const uploads = MINIO_UPLOADS_FOLDER_NAME
     const objectName = `${uploads}/${fileName}`
     const minioClient = await getInstance()
     minioClient.fGetObject(MINIO_BUCKET, objectName, tmpFile, callback)
   },
 
-  async getFileStream (fileName, callback) {
+  async getFileStream(fileName, callback) {
     const uploads = MINIO_UPLOADS_FOLDER_NAME
     const objectName = `${uploads}/${fileName}`
     const minioClient = await getInstance()
     minioClient.getObject(MINIO_BUCKET, objectName, callback)
   },
 
-  async getFileStat (filename) {
+  async getFileStat(filename) {
     const minioClient = await getInstance()
     return new Promise((resolve, reject) => {
       const uploads = MINIO_UPLOADS_FOLDER_NAME
@@ -137,7 +137,7 @@ module.exports = {
     })
   },
 
-  async deleteFile (fileName) {
+  async deleteFile(fileName) {
     const uploads = MINIO_UPLOADS_FOLDER_NAME
     const objectName = `${uploads}/${fileName}`
     const minioClient = await getInstance()

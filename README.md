@@ -11,13 +11,13 @@ The Minio middleware also allows you to list all files stored inside the predefi
 ## First of all, install the package:
 
 ```shell
-npm i express-middleware-minio
+npm i @europepmc/express-middleware-minio
 ```
 
 Or
 
 ```shell
-yarn add express-middleware-minio
+yarn add @europepmc/express-middleware-minio
 ```
 
 ## Second, you need to add .env to get it up running, e.g.:
@@ -47,40 +47,40 @@ Four operations are provided:
 You can use them the following way:
 
 ```javascript
-const expressMinio = require("express-middleware-minio");
+const expressMinio = require('@europepmc/express-middleware-minio')
 ```
 
 You can find below an example.
 
 ```javascript
-const expressMinio = require("express-middleware-minio");
-const minioMiddleware = expressMinio.middleware();
+const expressMinio = require('@europepmc/express-middleware-minio')
+const minioMiddleware = expressMinio.middleware()
 
 // Upload a file
 app.post(
-  "/api/files",
+  '/api/files',
   minioMiddleware({ op: expressMinio.Ops.postStream }),
   (req, res) => {
     if (req.minio.error) {
-      res.status(400).json({ error: req.minio.error });
+      res.status(400).json({ error: req.minio.error })
     } else {
-      res.send({ filename: req.minio.post.filename });
+      res.send({ filename: req.minio.post.filename })
     }
   }
-);
+)
 
 // List all files
 app.get(
-  "/api/files",
+  '/api/files',
   minioMiddleware({ op: expressMinio.Ops.list }),
   (req, res) => {
     if (req.minio.error) {
-      res.status(400).json({ error: req.minio.error });
+      res.status(400).json({ error: req.minio.error })
     } else {
-      res.send(req.minio.list);
+      res.send(req.minio.list)
     }
   }
-);
+)
 
 // Download a file
 app.get(
@@ -88,27 +88,27 @@ app.get(
   minioMiddleware({ op: expressMinio.Ops.getStream }),
   (req, res) => {
     if (req.minio.error) {
-      res.status(400).json({ error: req.minio.error });
-      return;
+      res.status(400).json({ error: req.minio.error })
+      return
     }
 
-    res.attachment(req.minio.get.originalName);
-    req.minio.get.stream.pipe(res);
+    res.attachment(req.minio.get.originalName)
+    req.minio.get.stream.pipe(res)
   }
-);
+)
 
 // Delete a file
 app.delete(
-  "/api/files/:filename",
+  '/api/files/:filename',
   minioMiddleware({ op: expressMinio.Ops.delete }),
   (req, res) => {
     if (req.minio.error) {
-      res.status(400).json({ error: req.minio.error });
+      res.status(400).json({ error: req.minio.error })
     } else {
-      res.send(req.minio.delete);
+      res.send(req.minio.delete)
     }
   }
-);
+)
 ```
 
 ## Configuration
@@ -120,20 +120,20 @@ By default, console is used for logging. You can override the logger with Node-c
 Here is an example config/default.js:
 
 ```javascript
-const logger = require("winston");
-require("winston-daily-rotate-file");
+const logger = require('winston')
+require('winston-daily-rotate-file')
 
 logger.add(logger.transports.DailyRotateFile, {
-  dirname: "./logs",
-  filename: "xpub-epmc.log",
-  datePattern: "YYYY-MM-DD",
+  dirname: './logs',
+  filename: 'xpub-epmc.log',
+  datePattern: 'YYYY-MM-DD',
   zippedArchive: true,
-  maxFiles: "30d"
-});
+  maxFiles: '30d'
+})
 
 module.exports = {
   logger
-};
+}
 ```
 
 ### Test
@@ -156,8 +156,8 @@ Here is an example config/default.js:
 
 ```javascript
 module.exports = {
-  minioTmpDir: "/tmp"
-};
+  minioTmpDir: '/tmp'
+}
 ```
 
 **Note**: the recommended way is to use operation getStream, which would pipe the stream of the requested file to the client. If you use getStream way, you don't need to set up the temporary directory.

@@ -98,7 +98,7 @@ const handlePostStream = async (req, next, files, fileStream) => {
     )
     req.minio = { post: { filename: `${filename}`, etag } }
   } catch (error) {
-    console.log('error: ', error)
+    logger.error('error: ', error)
     req.minio = { error }
   }
   next()
@@ -115,12 +115,42 @@ const handleList = (req, next) => {
   })
 }
 
-const handleGet = async (req, next) => {
+const getFileInfo = async req => {
+  if (req.minioFile && req.minioFile.filename) {
+    return {
+      filename: req.minioFile.filename,
+      contentType: req.minioFile.mimeType,
+      size: req.minioFile.size
+    }
+  }
+
   let stat
   try {
     stat = await minioClient.getFileStat(req.params.filename)
   } catch (error) {
+    logger.error('minio getFileInfo error: ', error)
     req.minio = { error }
+    return {}
+  }
+
+  let { filename, contentType } = getFileMetaData(stat)
+  if (!filename) {
+    filename = req.params.filename
+  }
+  if (!filename || !contentType) {
+    req.minio = { error: 'filename or contentType of available' }
+  }
+
+  return {
+    filename,
+    contentType,
+    size: stat.size
+  }
+}
+
+const handleGet = async (req, next) => {
+  const { filename, contentType, size } = await getFileInfo(req)
+  if (!filename || !contentType) {
     next()
     return
   }
@@ -130,16 +160,12 @@ const handleGet = async (req, next) => {
     if (error) {
       req.minio = { error }
     } else {
-      let { filename, contentType } = getFileMetaData(stat)
-      if (!filename) {
-        filename = req.params.filename
-      }
       req.minio = {
         get: {
           path: tmpFile,
           originalName: filename,
           contentType,
-          contentLength: stat.size
+          contentLength: size
         }
       }
     }
@@ -148,12 +174,8 @@ const handleGet = async (req, next) => {
 }
 
 const handleGetStream = async (req, next) => {
-  let stat
-  try {
-    stat = await minioClient.getFileStat(req.params.filename)
-  } catch (error) {
-    logger.error('minio handleGetSteam error: ', error)
-    req.minio = { error }
+  const { filename, contentType } = await getFileInfo(req)
+  if (!filename) {
     next()
     return
   }
@@ -162,10 +184,6 @@ const handleGetStream = async (req, next) => {
     if (error) {
       req.minio = { error }
     } else {
-      let { filename, contentType } = getFileMetaData(stat)
-      if (!filename) {
-        filename = req.params.filename
-      }
       req.minio = {
         get: {
           stream,
@@ -224,10 +242,10 @@ const handleRequests = (req, next, options) => {
       }
       files.file.name = part.filename
       files.file.type = part.mime
-      part.on('data', function (buffer) {
+      part.on('data', function(buffer) {
         pass.write(buffer)
       })
-      part.on('end', function () {
+      part.on('end', function() {
         pass.end()
       })
     }
@@ -254,7 +272,7 @@ module.exports = {
   Ops,
   utils,
   minioClient,
-  middleware () {
+  middleware() {
     return options => (req, res, next) => {
       handleRequests(req, next, options)
     }
