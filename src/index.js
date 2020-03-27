@@ -46,12 +46,18 @@ const validityCheck = (req, options) => {
 }
 
 const getFileMetaData = stat => {
-  if (stat && stat.metaData) {
-    return {
-      filename: Buffer.from(stat.metaData['file-name'], 'base64').toString(
-        'utf8'
-      ),
-      contentType: stat.metaData['content-type']
+  if (stat && stat.metaData & stat.metaData['content-type']) {
+    if (stat.metaData['file-name']) {
+      return {
+        filename: Buffer.from(stat.metaData['file-name'], 'base64').toString(
+          'utf8'
+        ),
+        contentType: stat.metaData['content-type']
+      }
+    } else {
+      return {
+        contentType: stat.metaData['content-type']
+      }
     }
   }
   return {}
