@@ -46,21 +46,19 @@ const validityCheck = (req, options) => {
 }
 
 const getFileMetaData = stat => {
-  if (stat && stat.metaData & stat.metaData['content-type']) {
+  const metaData = {}
+  if (stat && stat.metaData) {
     if (stat.metaData['file-name']) {
-      return {
-        filename: Buffer.from(stat.metaData['file-name'], 'base64').toString(
-          'utf8'
-        ),
-        contentType: stat.metaData['content-type']
-      }
-    } else {
-      return {
-        contentType: stat.metaData['content-type']
-      }
+      metaData.filename = Buffer.from(
+        stat.metaData['file-name'],
+        'base64'
+      ).toString('utf8')
+    }
+    if (stat.metaData['content-type']) {
+      metaData.contentType = stat.metaData['content-type']
     }
   }
-  return {}
+  return metaData
 }
 
 const handlePost = (req, next, fields, files) => {
@@ -122,14 +120,6 @@ const handleList = (req, next) => {
 }
 
 const getFileInfo = async req => {
-  if (req.minioFile && req.minioFile.filename) {
-    return {
-      filename: req.minioFile.filename,
-      contentType: req.minioFile.mimeType,
-      size: req.minioFile.size
-    }
-  }
-
   let stat
   try {
     stat = await minioClient.getFileStat(req.params.filename)
@@ -139,13 +129,7 @@ const getFileInfo = async req => {
     return {}
   }
 
-  let { filename, contentType } = getFileMetaData(stat)
-  if (!filename) {
-    filename = req.params.filename
-  }
-  if (!filename || !contentType) {
-    req.minio = { error: 'filename or contentType of available' }
-  }
+  const { filename, contentType } = getFileMetaData(stat)
 
   return {
     filename,
@@ -156,10 +140,6 @@ const getFileInfo = async req => {
 
 const handleGet = async (req, next) => {
   const { filename, contentType, size } = await getFileInfo(req)
-  if (!filename || !contentType) {
-    next()
-    return
-  }
 
   const tmpFile = utils.getTempPath(req.params.filename)
   minioClient.getFile(req.params.filename, tmpFile, error => {
@@ -181,10 +161,6 @@ const handleGet = async (req, next) => {
 
 const handleGetStream = async (req, next) => {
   const { filename, contentType } = await getFileInfo(req)
-  if (!filename) {
-    next()
-    return
-  }
 
   minioClient.getFileStream(req.params.filename, (error, stream) => {
     if (error) {
